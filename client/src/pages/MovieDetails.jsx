@@ -60,7 +60,7 @@ const MovieDetails = () => {
               Watch Trailer
             </button>
             <a
-              href=""
+              href="#dateSelect"
               className="px-10 py-3 text-sm bg-primary hover:bg-primary-dull transition rounded-md font-medium cursor-pointer active:scale-95"
             >
               Buy Tickets
