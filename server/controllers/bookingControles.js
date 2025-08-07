@@ -23,6 +23,8 @@ export const createBooking = async (req, res) => {
     const { userId } = req.auth();
     const { showId } = req.body;
     const { origin } = req.headers;
+    const { selectedSeats } = req.body;
+
 
     // Check if the seat is available for the selected show
 
@@ -42,12 +44,12 @@ export const createBooking = async (req, res) => {
     const booking = await Booking.create({
       user: userId,
       show: showId,
-      amoun: showData.showPrice * selectedSeats.length,
+      amount: showData.showPrice * selectedSeats.length,
       bookedSeats: selectedSeats,
     });
 
     selectedSeats.map((seat) => {
-      showData.occupiedSeat[seat] = userId;
+      showData.occupiedSeats[seat] = userId;
     });
 
     showData.markModified("occupiedSeats");
@@ -66,7 +68,7 @@ export const createBooking = async (req, res) => {
 export const getOccupidedSeats = async (req, res) => {
   try {
     const { showId } = req.params;
-    const showData = await show.findById(showId);
+    const showData = await Show.findById(showId);
 
     const occupiedSeats = Object.keys(showData.occupiedSeats);
 
