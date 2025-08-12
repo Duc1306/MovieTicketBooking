@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { dummyDateTimeData, dummyShowsData } from "../assets/assets";
 import BlurCircle from "../components/BlurCircle";
 import { StarIcon } from "lucide-react";
 import timeFormat from "../lib/timeFormat";
@@ -8,21 +7,41 @@ import DateSelect from "../components/DateSelect";
 import MovieCard from "../components/MovieCard";
 import Loading from "../components/Loading";
 import { PlayCircleIcon, Heart } from "lucide-react";
+import { useAppContext } from "../../context/AppContext";
+import toast from "react-hot-toast";
 
 const MovieDetails = () => {
+  const {shows,axios,getToken,user,fetchFavoriteMovies,favoriteMovies,image_base_url} = useAppContext()
   const navigate = useNavigate();
   const { id } = useParams();
   const [show, setShow] = useState(null);
 
   const getShow = async () => {
-    const show = dummyShowsData.find((show) => show._id === id);
-    if (show) {
-      setShow({
-        movie: show,
-        dateTime: dummyDateTimeData,
-      });
+    try {
+      const {data} = await axios.get(`/api/show/${id}`)
+      if(data.success){
+        setShow(data)
+      }
+    } catch (error) {
+      console.log(error)
     }
   };
+
+  const handleFavorite = async ()=>{
+    try {
+      if(!user) return toast.error("Please login to proceed")
+        const {data} = await axios.post('/api/user/update-favorite',{movieId: id}, {
+        headers: { Authorization: `Bearer ${await getToken()}` },
+      });
+      if(data.success){
+        await fetchFavoriteMovies()
+        toast.success(data.message)
+      }
+    } catch (error) {
+      console.log(error)
+    }
+    }
+
 
   useEffect(() => {
     getShow();
@@ -34,7 +53,7 @@ const MovieDetails = () => {
         <img
           alt=""
           className="max-md:mx-auto rounded-xl h-104 max-w-70 object-cover"
-          src={show.movie.poster_path}
+          src={image_base_url + show.movie.poster_path}
         />
         <div className="relative flex flex-col gap-3">
           <BlurCircle top="-100px" left="-100px" />
@@ -65,8 +84,9 @@ const MovieDetails = () => {
             >
               Buy Tickets
             </a>
-            <button className="bg-gray-700 p-2.5 rounded-full transition cursor-pointer active:scale-95">
-              <Heart className=" w-5 h-5" />
+            <button className="bg-gray-700 p-2.5 rounded-full transition cursor-pointer active:scale-95"
+            onClick={handleFavorite}>
+              <Heart className={`w-5 h-5 ${favoriteMovies.find(movie => movie._id === id) ? 'fill-primary text-primary': ""}`} />
             </button>
           </div>
         </div>
@@ -79,7 +99,7 @@ const MovieDetails = () => {
               <img
                 alt=""
                 className="rounded-full h-20 md:h-20 aspect-square object-cover"
-                src={cast.profile_path}
+                src={image_base_url + cast.profile_path}
               />
               <p className="font-medium text-xs mt-3">{cast.name}</p>
             </div>
@@ -89,7 +109,7 @@ const MovieDetails = () => {
       <DateSelect dateTime={show.dateTime} id={id} />
       <p className="text-lg font-medium mt-20 mb-8">You May Also Like</p>
       <div className="flex flex-wrap max-sm:justify-center gap-8">
-        {dummyShowsData.slice(0, 4).map((movie, index) => (
+        {shows.slice(0, 4).map((movie, index) => (
           <MovieCard key={index} movie={movie} />
         ))}
       </div>
