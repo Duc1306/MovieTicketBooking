@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { assets } from "../assets/assets";
 import Loading from "../components/Loading";
 import { ArrowRightIcon, ClockIcon } from "lucide-react";
@@ -22,7 +22,7 @@ const SeaLayout = () => {
   const [show, setShow] = useState(null);
   const [occupiedSeats, setOccupiedSeats] = useState([]);
 
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const { axios, getToken, user } = useAppContext();
 
   const getShow = async () => {
@@ -104,8 +104,7 @@ const SeaLayout = () => {
         }
       );
       if (data.success) {
-        toast.success(data.message);
-        navigate("/my-bookings");
+        window.location.href = data.url;
       } else {
         toast.error(data.message);
       }
