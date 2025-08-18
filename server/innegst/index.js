@@ -56,7 +56,7 @@ const releaseSeatsAndDeleteBooking = inngest.createFunction(
   {id: 'release-seats-delete-booking'},
   {event: "app/checkpayment"},
   async ({event,step}) =>{
-    const tenMinutesLater =( new Date.now() + 10 * 60 * 1000);
+    const tenMinutesLater = new Date(Date.now() + 10 * 60 * 1000);
     await step.sleepUntil('wait-for-10-minutes',tenMinutesLater)
 
     await step.run('check-payment-status',async ()=>{
@@ -70,7 +70,7 @@ const releaseSeatsAndDeleteBooking = inngest.createFunction(
           delete show.occupiedSeats[seat]
         })
         show.markModified('occupiedSeats')
-        await Show.save()
+        await show.save()
         await Booking.findByIdAndDelete(booking._id)
       }
     })
