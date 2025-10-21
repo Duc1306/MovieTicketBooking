@@ -7,30 +7,29 @@ import dateFormat from "../../lib/dateFormat";
 import { useAppContext } from "../../../context/AppContext";
 
 const ListBooking = () => {
-  const {axios,getToken,user} = useAppContext()
+  const { axios, getToken, user } = useAppContext();
   const currency = import.meta.env.VITE_CURRENCY;
 
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const getAllBookings = async () => {
-      try {
-        const {data} = await axios.get("/api/admin/all-bookings", {
-          headers: { Authorization: `Bearer ${await getToken()}` },
-        });
-         setBookings(data.bookings)
-      
-      } catch (error) {
-        console.error(error)
-      }
-      setLoading(false)
+    try {
+      const { data } = await axios.get("/api/admin/all-bookings", {
+        headers: { Authorization: `Bearer ${await getToken()}` },
+      });
+      setBookings(data.bookings);
+    } catch (error) {
+      console.error(error);
     }
-  
-    useEffect(() => {
-      if(user){
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (user) {
       getAllBookings();
-      }
-    }, [user]);
+    }
+  }, [user]);
   return !loading ? (
     <>
       <Title text1="List" text2="Bookings" />
@@ -51,9 +50,11 @@ const ListBooking = () => {
                 key={index}
                 className="border-b border-primary/20 bg-primary/5 even:bg-primary/10"
               >
-                <td className="p-2 min-w-45 pl-5">{item.user.name}</td>
-                <td className="p-2">{item.show.movie.title}</td>
-                <td className="p-2">{dateFormat(item.show.showDataTime)}</td>
+                <td className="p-2 min-w-45 pl-5">
+                  {item.user?.name || "N/A"}
+                </td>
+                <td className="p-2">{item.show?.movie?.title || "N/A"}</td>
+                <td className="p-2">{dateFormat(item.show?.showDateTime)}</td>
                 <td className="p-2">
                   {Object.keys(item.bookedSeats)
                     .map((seat) => item.bookedSeats[seat])
