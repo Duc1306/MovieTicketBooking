@@ -2,6 +2,7 @@ import { inngest } from "../innegst/index.js";
 import Booking from "../models/Booking.js";
 import Show from "../models/Show.js";
 import stripe from 'stripe'
+import mongoose from "mongoose";
 
 //Function to check availability of selected seats for a movie
 export const checkSeatsAvailability = async (showId, selectedSeats) => {
@@ -21,6 +22,8 @@ export const checkSeatsAvailability = async (showId, selectedSeats) => {
 };
 
 export const createBooking = async (req, res) => {
+  const dbSession = await mongoose.startSession();
+  dbSession.startTransaction();
   try {
     const { userId } = req.auth();
     const { showId } = req.body;
@@ -29,26 +32,29 @@ export const createBooking = async (req, res) => {
 
 
     // Check if the seat is available for the selected show
+    const showData = await Show.findById(showId).session(dbSession).populate("movie");
 
-    const isAvailable = await checkSeatsAvailability(showId, selectedSeats);
+    const occupiedSeats = showData.occupiedSeats;
 
-    if (!isAvailable) {
+    const isAnySeatTaken = selectedSeats.some((seat) => occupiedSeats[seat]);
+
+    if (isAnySeatTaken) {
+      await dbSession.abortTransaction();
+      dbSession.endSession();
       return res.json({
         success: false,
         message: "Selected seats are not available.",
       });
     }
 
-    //Get the show details
-    const showData = await Show.findById(showId).populate("movie");
-
     // Create a new booking
-    const booking = await Booking.create({
+    const booking = new Booking({
       user: userId,
       show: showId,
       amount: showData.showPrice * selectedSeats.length,
       bookedSeats: selectedSeats,
     });
+    await booking.save({session: dbSession})
 
     selectedSeats.map((seat) => {
       showData.occupiedSeats[seat] = userId;
@@ -56,7 +62,7 @@ export const createBooking = async (req, res) => {
 
     showData.markModified("occupiedSeats");
 
-    await showData.save();
+    await showData.save({session: dbSession});
 
     //Stripe GateWay Initialize
      const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY)
@@ -85,7 +91,10 @@ export const createBooking = async (req, res) => {
       expires_at: Math.floor(Date.now() / 1000) +  30 * 60 , //Expires in 30 minutes
      })
      booking.paymentLink = session.url
-     await booking.save()
+     await booking.save({session: dbSession})
+
+     await dbSession.commitTransaction();
+     dbSession.endSession();
 
      // Run inngest Sheduler Function to check payment status after 10 minutes
      await inngest.send({
@@ -98,6 +107,8 @@ export const createBooking = async (req, res) => {
 
     res.json({ success: true, url:session.url });
   } catch (error) {
+    await dbSession.abortTransaction();
+    dbSession.endSession();
     console.error(error.message);
     res.json({ success: false, message: error.message });
   }
